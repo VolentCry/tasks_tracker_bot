@@ -58,12 +58,13 @@ async def my_desks(callback: CallbackQuery):
     """Выводит пользователю всего его активные доски.
     Если они отсутствуют, то предлагает создать новую доску"""
     global Db
+    user_cnt_desk, cnt_tasks = Db.get_tasks_and_desks_cnt(user_id)
     for user_id in Db.take_users_ids():
-        if user_id == callback.from_user.id and Db.take_user_cnt_desks(user_id) != 0: 
+        if user_id == callback.from_user.id and user_cnt_desk != 0: 
             await bot.send_message(callback.from_user.id, "Вот ваши доски:", reply_markup=desks_kb(user_id))
             await callback.answer()
             break
-        elif user_id == callback.from_user.id and Db.take_user_cnt_desks(user_id) == 0:
+        elif user_id == callback.from_user.id and user_cnt_desk == 0:
             await bot.send_message(callback.from_user.id, text="У вас ещё не создано ни одной доски. \nСейчас мы создадим вам новую доску!")
             try:
                 Db.create_desk(callback.from_user.id)
@@ -83,16 +84,15 @@ async def my_desks(callback: CallbackQuery):
 @dp.callback_query(lambda c: c.data == "profile_settings")
 async def my_desks(callback: CallbackQuery):
     """Выводит пользователю информацию о нём"""
-    user_phone_number = ""
-    desks_cnt = 0
-    tasks_cnt = 0
+    desks_cnt, tasks_cnt = Db.get_tasks_and_desks_cnt(callback.from_user.id)
+    user_phone_number = "-/-"
     await bot.send_message(callback.from_user.id,
                            text=f"Имя пользователя: {callback.from_user.first_name}\n"\
-                           f"Номер телефона: {user_phone_number}\n"\
-                           f"Никнейм: {callback.from_user.username}\n"\
-                           f"Количество активных досок: {desks_cnt}\n"\
-                           f"Общее количество тасков: {tasks_cnt}",
-                           reply_markup=back_kb,
+                           f"Номер телефона: <i>{user_phone_number}</i>\n"\
+                           f"Никнейм: <code>@{callback.from_user.username}</code>\n"\
+                           f"Количество активных досок: <b>{desks_cnt}</b>\n"\
+                           f"Общее количество тасков: <b>{tasks_cnt}</b>",
+                           reply_markup=back_kb(),
                            parse_mode=ParseMode.HTML
                            )
     await callback.answer()
@@ -113,7 +113,8 @@ async def create_desk(callback: CallbackQuery):
     """Создаёт новую доску для пользователя."""
     global Db
     user_id = callback.from_user.id
-    if Db.take_user_cnt_desks(user_id) < 10:
+    user_cnt_desk, cnt_tasks = Db.get_tasks_and_desks_cnt(user_id)
+    if user_cnt_desk < 10:
         try:
             Db.create_desk(callback.from_user.id)
             await bot.send_message(callback.from_user.id, text="Доска была успешно создана.")
@@ -194,6 +195,8 @@ async def show_user_tasks_at_desk(callback: CallbackQuery):
     await bot.send_message(callback.from_user.id, text=f"Доска номер: <b>{int(data[-1]) + 1}</b>\nВладелец: <code>{callback.from_user.username}</code>\n\n<b><u>Задачи:</u></b>", reply_markup=tasks_menu(int(data[-2]), int(data[-1]) + 1), parse_mode=ParseMode.HTML)
     await callback.answer()
 
+
+# ----------------------------- Работа с отдельными тасками -----------------------------
 @dp.callback_query(lambda c: c.data.startswith("t_desks_"))
 async def show_task_menu_info(callback: CallbackQuery):
     """Отображает меню для отдельной задачи"""
@@ -227,6 +230,22 @@ async def show_user_tasks_at_desk(callback: CallbackQuery):
     else:
         await callback.answer()
 
+
+@dp.callback_query(lambda c: c.data.startswith("delete_task_"))
+async def delete_task(callback: CallbackQuery):
+    """Удаление определённой задачи из доски"""
+    data = callback.data.split("_")
+    user_id = int(data[-3])
+    id_of_desk = int(data[-2])
+    name_of_task = callback.message.text.split("\n")[0]
+    Db.delete_task(user_id, id_of_desk, name_of_task)
+    await callback.message.edit_text(text="❌ Задача удалена. ❌")
+    await start_bot(callback)
+    await callback.answer()
+
+
+
+# ----------------------------------------------------------
 
 async def main():
     """Старт бота"""

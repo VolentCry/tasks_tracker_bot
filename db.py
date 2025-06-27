@@ -23,12 +23,6 @@ class Database():
             user_ids[i] = user_ids[i][0]
         return user_ids
     
-    def take_user_cnt_desks(self, user_id: int) -> int:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT cnt_desk FROM user_list WHERE user_id = ?", (user_id,))
-        cnt_desks = cursor.fetchall()
-        return cnt_desks[0][0]
-    
     def create_desk(self, user_id: int):
         """Создаёт доску для определённого пользователя"""
         cursor = self.conn.cursor()
@@ -114,11 +108,14 @@ class Database():
             tasks_cnt += len(cursor.fetchall())
         self.conn.commit()
         return desks_cnt, tasks_cnt
+    
+    def delete_task(self, user_id: int, number_of_desk: int, task_name: str):
+        """Удаление таска"""
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute(f'DELETE FROM Desk_{user_id}_{number_of_desk} WHERE name = ?', (task_name, ))
+        except:
+            print(f"Произошла ошибка при поптыке уделания таска {task_name} из доски Desk_{user_id}_{number_of_desk}")
+        self.conn.commit()
         
     
-
-db = Database()
-
-# db.add_user(675244968, "teaking66", "Сёма")
-
-print(db.get_tasks_and_desks_cnt(675244968, 1))
