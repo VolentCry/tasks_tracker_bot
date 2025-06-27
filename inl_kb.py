@@ -8,6 +8,12 @@ def start_kb():
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+def back_kb():
+    buttons = [
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_start")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 def desks_kb(user_id: int):
     db = Database()
     buttons = []
@@ -31,5 +37,26 @@ def edit_desk_kb(user_id: int, id_of_desk: int):
         [InlineKeyboardButton(text="📓 Изменить название", callback_data=f"change_name_of_desk_{user_id}_{id_of_desk}")],
         [InlineKeyboardButton(text="🎯 Изменить цель", callback_data=f"change_goal_of_desk_{user_id}_{id_of_desk}")],
         [InlineKeyboardButton(text="❌ Удалить доску", callback_data=f"delete_desk_{user_id}_{id_of_desk}")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def tasks_menu(user_id: int, id_of_desk: int):
+    """Создаёт инлайн клавиатуру со всеми заданиями определённой доски"""
+    db = Database()
+    buttons = []
+    tasks = db.get_all_tasks_info(user_id, id_of_desk)
+    for num, task in enumerate(tasks):
+        buttons.append([InlineKeyboardButton(text=f"{task[0]}", callback_data=f"t_desks_{user_id}_{id_of_desk}_task_{num}")])
+    keybord_desks = InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keybord_desks
+
+def task_edit_menu(user_id: int, id_of_desk: int, task_num: int):
+    """Создаёт клавиатуру с менюшкой для управления задачей"""
+    buttons = [
+        [InlineKeyboardButton(text="📝 Изменить название задачи", callback_data=f"change_task_name_{user_id}_{id_of_desk}_{task_num}")],
+        [InlineKeyboardButton(text="🎯 Поменять статус задачи", callback_data=f"change_task_status_{user_id}_{id_of_desk}_{task_num}")],
+        [InlineKeyboardButton(text="🗓 Настроить дату", callback_data=f"change_task_date_{user_id}_{id_of_desk}_{task_num}")],
+        [InlineKeyboardButton(text="⏰ Настроить оповещение", callback_data=f"set_task_notification_{user_id}_{id_of_desk}_{task_num}")],
+        [InlineKeyboardButton(text="❌ Удалить задачу", callback_data=f"delete_task_{user_id}_{id_of_desk}_{task_num}")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)

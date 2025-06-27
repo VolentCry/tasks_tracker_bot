@@ -93,10 +93,32 @@ class Database():
             pass # Задача с таким названием уже добавлена
         self.conn.commit()
     
+
+    def get_all_tasks_info(self, user_id: int, id_of_desk: int) -> list[tuple]:
+        """Извлекает все таски пользователя с определённой доски"""
+        cursor = self.conn.cursor()
+        cursor.execute(f"SELECT * FROM Desk_{user_id}_{id_of_desk}")
+        user_tasks_list = cursor.fetchall()
+        self.conn.commit()
+        return user_tasks_list
+    
+    def get_tasks_and_desks_cnt(self, user_id: int) -> tuple[int]:
+        """Возвращает кол-во активных досок пользователя и общее количество тасков"""
+        cursor = self.conn.cursor()
+        cursor.execute(f"SELECT cnt_desk FROM user_list WHERE user_id = ?", (user_id, ))
+        desks_cnt = cursor.fetchall()[0][0]
+        tasks_cnt = 0
+        for i in range(1, desks_cnt + 1):
+            desk_name = f"Desk_{user_id}_{i}"
+            cursor.execute(f"SELECT name FROM {desk_name}")
+            tasks_cnt += len(cursor.fetchall())
+        self.conn.commit()
+        return desks_cnt, tasks_cnt
         
     
 
-# db = Database()
+db = Database()
+
 # db.add_user(675244968, "teaking66", "Сёма")
 
-# db.add_task_to_desk(675244968, 1, "Помыть ручки")
+print(db.get_tasks_and_desks_cnt(675244968, 1))
