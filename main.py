@@ -34,9 +34,11 @@ class TaskMaker(StatesGroup):
     task_description = State()
     task_date = State()
 
+# ----------------------- Старт и стоп -----------------------
 @dp.message(CommandStart())
 async def start_bot(message: Message):
     """Старт бота с приветственным сообщением"""
+    await message.delete()
     await bot.send_message(
         message.from_user.id,
         text="Приветствую тебя в твоём планере дел!",
@@ -52,43 +54,18 @@ async def stop_bot(message: Message):
             text="Бот остановлен."
                             )
         sys.exit()
-
-@dp.callback_query(lambda c: c.data == "my_descks")
-async def my_desks(callback: CallbackQuery):
-    """Выводит пользователю всего его активные доски.
-    Если они отсутствуют, то предлагает создать новую доску"""
-    global Db
-    user_cnt_desk, cnt_tasks = Db.get_tasks_and_desks_cnt(callback.from_user.id)
-    for user_id in Db.take_users_ids():
-        if user_id == callback.from_user.id and user_cnt_desk != 0: 
-            await bot.send_message(callback.from_user.id, "Вот ваши доски:", reply_markup=desks_kb(user_id))
-            await callback.answer()
-            break
-        elif user_id == callback.from_user.id and user_cnt_desk == 0:
-            await bot.send_message(callback.from_user.id, text="У вас ещё не создано ни одной доски. \nСейчас мы создадим вам новую доску!")
-            try:
-                Db.create_desk(callback.from_user.id)
-                await bot.send_message(callback.from_user.id, text="Доска была успешно создана.")
-                await bot.send_message(callback.from_user.id, "Вот ваши доски:", reply_markup=desks_kb(user_id))
-            except:
-                await bot.send_message(callback.from_user.id, text="Возникли технические проблемы, попробуйте снова позже.")
-            await callback.answer()
-            break
-    else:
-        await bot.send_message(callback.from_user.id, text="На данный момент вас нет в базе данных. Сейчас вас добавим...")
-        Db.add_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
-        await bot.send_message(callback.from_user.id, text="Ваш профиль был успешно создан!", reply_markup=start_kb())
-        await callback.answer()
+# -----------------------------------------------------------
 
 
+
+
+# --------------------- Работа с пользователем ---------------------
 @dp.callback_query(lambda c: c.data == "profile_settings")
 async def my_desks(callback: CallbackQuery):
     """Выводит пользователю информацию о нём"""
     desks_cnt, tasks_cnt = Db.get_tasks_and_desks_cnt(callback.from_user.id)
-    user_phone_number = "-/-"
     await bot.send_message(callback.from_user.id,
                            text=f"Имя пользователя: {callback.from_user.first_name}\n"\
-                           f"Номер телефона: <i>{user_phone_number}</i>\n"\
                            f"Никнейм: <code>@{callback.from_user.username}</code>\n"\
                            f"Количество активных досок: <b>{desks_cnt}</b>\n"\
                            f"Общее количество тасков: <b>{tasks_cnt}</b>",
@@ -99,13 +76,58 @@ async def my_desks(callback: CallbackQuery):
 
 
 @dp.callback_query(lambda c: c.data == "back_to_start")
-async def back_to_menu(message: Message):
+async def back_to_menu(callback: CallbackQuery):
     """Выход из настроек пользователя обрабтно в главное меню"""
     await bot.send_message(
-        message.from_user.id,
+        callback.from_user.id,
         text="Приветствую тебя в твоём планере дел!",
         reply_markup=start_kb()
                            )
+    await callback.answer()
+
+
+
+
+
+# --------------------- Работа с досками ---------------------
+@dp.callback_query(lambda c: c.data == "my_descks")
+async def my_desks(callback: CallbackQuery):
+    """Выводит пользователю всего его активные доски.
+    Если они отсутствуют, то предлагает создать новую доску"""
+    global Db
+    user_cnt_desk, cnt_tasks = Db.get_tasks_and_desks_cnt(callback.from_user.id)
+    for user_id in Db.take_users_ids():
+        if user_id == callback.from_user.id and user_cnt_desk != 0: 
+            await bot.send_message(callback.from_user.id, 
+                                   "Вот ваши доски:", 
+                                   reply_markup=desks_kb(user_id))
+            await callback.answer()
+            break
+        elif user_id == callback.from_user.id and user_cnt_desk == 0:
+            await bot.send_message(callback.from_user.id, 
+                                   "У вас ещё не создано ни одной доски. \nСейчас мы создадим вам новую доску!")
+            try:
+                Db.create_desk(callback.from_user.id)
+                await bot.send_message(callback.from_user.id, 
+                                       "Доска была успешно создана.")
+                await bot.send_message(callback.from_user.id, 
+                                       "Вот ваши доски:", 
+                                       reply_markup=desks_kb(user_id))
+            except:
+                await bot.send_message(callback.from_user.id, 
+                                       "Возникли технические проблемы, попробуйте снова позже.")
+            await callback.answer()
+            break
+    else:
+        await bot.send_message(callback.from_user.id, 
+                               "На данный момент вас нет в базе данных. Сейчас вас добавим...")
+        
+        Db.add_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+
+        await bot.send_message(callback.from_user.id, 
+                               "Ваш профиль был успешно создан!", 
+                               reply_markup=start_kb())
+        await callback.answer()
 
 
 @dp.callback_query(lambda c: c.data == "create_desk")
@@ -125,17 +147,20 @@ async def create_desk(callback: CallbackQuery):
         await bot.send_message(callback.from_user.id, text="Вами достигнут лимит по количеству имеющихся досок.")
     await callback.answer()
 
+
 @dp.callback_query(lambda c: c.data.startswith(f"desks_"))
 async def open_desk_menu(callback: CallbackQuery):
     """Открывает основную информацию доски и меню"""
     data = callback.data.split("_")
+    await callback.message.delete()
     tasks_cnt = len(Db.get_all_tasks_info(int(data[1]), int(data[2]) + 1))
     await bot.send_message(callback.from_user.id, 
                            text=f"Номер доски: {int(data[2]) + 1}\n"\
-                            f"Владелец: {callback.from_user.username}\n"\
+                            f"Владелец: <code>@{callback.from_user.username}</code>\n"\
                             f"Количество задач: {tasks_cnt} \n\n"\
-                            f"Дальнейшие действия?", 
-                           reply_markup=desk_menu(int(data[1]), int(data[2])))
+                            f"<i>Дальнейшие действия?</i>", 
+                           reply_markup=desk_menu(int(data[1]), int(data[2])),
+                           parse_mode=ParseMode.HTML)
     await callback.answer()
 
 
@@ -145,6 +170,10 @@ async def edit_desk(callback: CallbackQuery):
     data = callback.data.split("_")
     await bot.send_message(callback.from_user.id, text="Вот возможные действия: ", reply_markup=edit_desk_kb(int(data[-2]), int(data[-1])))
     await callback.answer()
+# ------------------------------------------------------------------------
+
+
+
 
 
 # --------------- Добавленеи новой задачи ------------------
@@ -157,6 +186,7 @@ async def add_new_task_to_user_desk(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TaskMaker.task_name)
     await bot.send_message(callback.from_user.id, text="Давайте введём название задачи")
     await callback.answer()
+
 
 @dp.message(TaskMaker.task_name)
 async def task_descriprion(message: Message, state: FSMContext):
@@ -181,22 +211,30 @@ async def task_data_save(message: Message, state: FSMContext):
     task_data = await state.get_data()
     await state.clear()
     try:
-        Db.add_task_to_desk(message.from_user.id, int(task_data['number_of_desk']) + 1, task_data['task_name'], task_description=task_data['task_description'], date_time=task_data['task_date'])
+        Db.add_task_to_desk(message.from_user.id, int(task_data['number_of_desk']), task_data['task_name'], task_description=task_data['task_description'], date_time=task_data['task_date'])
         await bot.send_message(message.from_user.id, text='Таск был добавлен на доску!')
+        await start_bot(message)
     except ValueError as e:
         await bot.send_message(message.from_user.id, text=f'К сожалению данная дата не валидна, так как {e.args[0].lower()}')
         print(e.args)
 # ----------------------------------------------------------------------------
 
+
+
+
+
+
+
+# ----------------------------- Работа с отдельными тасками -----------------------------
 @dp.callback_query(lambda c: c.data.startswith("open_tasks_of_desk_"))
 async def show_user_tasks_at_desk(callback: CallbackQuery):
     """Отображает все задачи пользователя"""
     data = callback.data.split("_")
-    await bot.send_message(callback.from_user.id, text=f"Доска номер: <b>{int(data[-1]) + 1}</b>\nВладелец: <code>{callback.from_user.username}</code>\n\n<b><u>Задачи:</u></b>", reply_markup=tasks_menu(int(data[-2]), int(data[-1]) + 1), parse_mode=ParseMode.HTML)
+    await callback.message.delete()
+    await bot.send_message(callback.from_user.id, text=f"Доска номер: <b>{int(data[-1]) + 1}</b>\nВладелец: <code>@{callback.from_user.username}</code>\n\n<b><u>Задачи:</u></b>", reply_markup=tasks_menu(int(data[-2]), int(data[-1]) + 1), parse_mode=ParseMode.HTML)
     await callback.answer()
 
 
-# ----------------------------- Работа с отдельными тасками -----------------------------
 @dp.callback_query(lambda c: c.data.startswith("t_desks_"))
 async def show_task_menu_info(callback: CallbackQuery):
     """Отображает меню для отдельной задачи"""
@@ -211,6 +249,7 @@ async def show_task_menu_info(callback: CallbackQuery):
             status = 'не выполнена ❌' if task[-1] == 0 else 'выполнена ✅'
             await bot.send_message(callback.from_user.id, text=f"<b>{task[0]}</b>\n\n<u>Описание:</u> {task[1]}\n<u>Дата окончания:</u> {task[2]}\n\nСтатус: <i>{status}</i>", reply_markup=task_edit_menu(user_id, id_of_desk, int(data[-1])), parse_mode=ParseMode.HTML)
     await callback.answer()
+
 
 @dp.callback_query(lambda c: c.data.startswith("change_task_status_"))
 async def show_user_tasks_at_desk(callback: CallbackQuery):
@@ -242,10 +281,11 @@ async def delete_task(callback: CallbackQuery):
     await callback.message.edit_text(text="❌ Задача удалена. ❌")
     await start_bot(callback)
     await callback.answer()
-
-
-
 # ----------------------------------------------------------
+
+
+
+
 
 async def main():
     """Старт бота"""

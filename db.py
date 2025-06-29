@@ -36,8 +36,7 @@ class Database():
         cursor.execute(
             f'''
                 CREATE TABLE IF NOT EXISTS Desk_{user_id}_{user_desk_cnt} (
-                id_of_task INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
+                name TEXT PRIMARY KEY,
                 description TEXT,
                 date TEXT,
                 state BLOB NOT NULL
@@ -116,6 +115,12 @@ class Database():
             cursor.execute(f'DELETE FROM Desk_{user_id}_{number_of_desk} WHERE name = ?', (task_name, ))
         except:
             print(f"Произошла ошибка при поптыке уделания таска {task_name} из доски Desk_{user_id}_{number_of_desk}")
+        self.conn.commit()
+
+    def delete_desk(self, user_id: int, number_of_desk: int):
+        """Удаление окнкретной доски пользователя"""
+        cursor = self.conn.cursor()
+        cursor.execute(f'DROP TABLE IF EXISTS Desk_{user_id}_{number_of_desk}')
         self.conn.commit()
         
     

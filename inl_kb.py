@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from db import Database
 
 def start_kb():
+    """Стартовая клавиатура"""
     buttons = [
         [InlineKeyboardButton(text="📝 Мои доски", callback_data="my_descks")],
         [InlineKeyboardButton(text="⏰ Настройкаи пользователя", callback_data="profile_settings")],
@@ -9,22 +10,26 @@ def start_kb():
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def back_kb():
+    """Клавиатура для выхода из меню пользователя"""
     buttons = [
         [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_start")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def desks_kb(user_id: int):
+    """Клавиатура с переченью всех активных досок"""
     db = Database()
     buttons = []
     buttons.append([InlineKeyboardButton(text="📝 Создать новую доску", callback_data="create_desk")])
-    for i in range(db.take_user_cnt_desks(user_id)):
+    a, b = db.get_tasks_and_desks_cnt(user_id)
+    for i in range(a):
         buttons.append([InlineKeyboardButton(text=f"Доска номер: {i + 1}", callback_data=f"desks_{user_id}_{i}")])
     keybord_desks = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keybord_desks
 
 
 def desk_menu(user_id: int, id_of_desk: int):
+    """Клавиатура с менюшкой под каждую доску"""
     buttons = [
         [InlineKeyboardButton(text="📝 Редактирование", callback_data=f"edit_desk_{user_id}_{id_of_desk}")],
         [InlineKeyboardButton(text="⏰ Список задач", callback_data=f"open_tasks_of_desk_{user_id}_{id_of_desk}")],
@@ -32,9 +37,10 @@ def desk_menu(user_id: int, id_of_desk: int):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def edit_desk_kb(user_id: int, id_of_desk: int):
+    """Клавиатура с настройками конкретной доски"""
     buttons = [
         [InlineKeyboardButton(text="📝 Добавить новую задачу", callback_data=f"add_new_task_to_desk_{user_id}_{id_of_desk}")],
-        [InlineKeyboardButton(text="📓 Изменить название", callback_data=f"change_name_of_desk_{user_id}_{id_of_desk}")],
+        # [InlineKeyboardButton(text="📓 Изменить название", callback_data=f"change_name_of_desk_{user_id}_{id_of_desk}")],
         [InlineKeyboardButton(text="🎯 Изменить цель", callback_data=f"change_goal_of_desk_{user_id}_{id_of_desk}")],
         [InlineKeyboardButton(text="❌ Удалить доску", callback_data=f"delete_desk_{user_id}_{id_of_desk}")],
     ]
@@ -45,6 +51,7 @@ def tasks_menu(user_id: int, id_of_desk: int):
     db = Database()
     buttons = []
     tasks = db.get_all_tasks_info(user_id, id_of_desk)
+    buttons.append([InlineKeyboardButton(text="📝 Добавить новую задачу", callback_data=f"add_new_task_to_desk_{user_id}_{id_of_desk}")])
     for num, task in enumerate(tasks):
         buttons.append([InlineKeyboardButton(text=f"{task[0]}", callback_data=f"t_desks_{user_id}_{id_of_desk}_task_{num}")])
     keybord_desks = InlineKeyboardMarkup(inline_keyboard=buttons)
