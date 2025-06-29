@@ -58,7 +58,7 @@ async def my_desks(callback: CallbackQuery):
     """Выводит пользователю всего его активные доски.
     Если они отсутствуют, то предлагает создать новую доску"""
     global Db
-    user_cnt_desk, cnt_tasks = Db.get_tasks_and_desks_cnt(user_id)
+    user_cnt_desk, cnt_tasks = Db.get_tasks_and_desks_cnt(callback.from_user.id)
     for user_id in Db.take_users_ids():
         if user_id == callback.from_user.id and user_cnt_desk != 0: 
             await bot.send_message(callback.from_user.id, "Вот ваши доски:", reply_markup=desks_kb(user_id))
