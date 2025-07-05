@@ -170,6 +170,19 @@ async def edit_desk(callback: CallbackQuery):
     data = callback.data.split("_")
     await bot.send_message(callback.from_user.id, text="Вот возможные действия: ", reply_markup=edit_desk_kb(int(data[-2]), int(data[-1])))
     await callback.answer()
+
+
+@dp.callback_query(lambda c: c.data.startswith(f"delete_desk_"))
+async def delete_desk(callback: CallbackQuery):
+    """Удаление доски"""
+    global Db
+    data = callback.data.split("_")
+    await callback.message.delete()
+    Db.delete_desk(int(data[-2]), int(data[-1]))
+    await bot.send_message(callback.from_user.id, 
+                           text="Доска была удалена.")
+    await start_bot(callback.message)
+    await callback.answer() 
 # ------------------------------------------------------------------------
 
 
